@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}O'qituvchi{% endblock %}
+{% block body %}
+<h1>Xush kelibsiz, {{ user.full_name }}</h1>
+<p class="sub">Bo'limni (fanni) tanlang va savollar kiriting.</p>
+
+<h2 style="margin-top:0">Mening fanlarim (bo'limlar)</h2>
+{% if subjects %}
+<div class="grid">
+  {% for s in subjects %}
+  <div class="card">
+    <div class="muted small">Fan</div>
+    <div style="font-size:18px;font-weight:700">{{ s.name }}</div>
+    <div class="big">{{ s.qcount }} <span class="small muted">ta savol</span></div>
+    <div class="actions" style="margin-top:10px">
+      <a class="btn sm" href="{{ url_for('t_questions', sid=s.id) }}">Savollar</a>
+      <a class="btn sm sec" href="{{ url_for('t_question_new', sid=s.id) }}">+ Savol</a>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="card">Sizga hali fan biriktirilmagan. Administratorga murojaat qiling.</div>
+{% endif %}
+
+<h2>Tezkor amallar</h2>
+<div class="actions">
+  <a class="btn" href="{{ url_for('t_test_new') }}">+ Yangi test yaratish</a>
+  <a class="btn sec" href="{{ url_for('t_students') }}">O'quvchilar ({{ nstud }})</a>
+  <a class="btn sec" href="{{ url_for('t_tests') }}">Barcha testlar</a>
+</div>
+
+{% if tests %}
+<h2>So'nggi testlar</h2>
+<div class="tablewrap"><table>
+  <tr><th>Test</th><th>Fan</th><th>Sinflar</th><th>Topshirgan</th><th></th></tr>
+  {% for t in tests %}
+  <tr><td>{{ t.title }}</td><td>{{ t.subject }}</td>
+    <td>{{ t.classes.strip('|').replace('|', ', ') }}</td><td>{{ t.done }}</td>
+    <td><a href="{{ url_for('t_results', tid=t.id) }}">Natijalar →</a></td></tr>
+  {% endfor %}
+</table></div>
+{% endif %}
+
+<h2>Parolni almashtirish</h2>
+<div class="card" style="max-width:420px">
+  <form method="post" action="{{ url_for('change_own_password') }}">
+    <input type="hidden" name="csrf" value="{{ csrf_token }}">
+    <label>Joriy parol</label><input type="password" name="old" required>
+    <label>Yangi parol</label><input type="password" name="new" required>
+    <p><button class="btn sec">Almashtirish</button></p>
+  </form>
+</div>
+{% endblock %}
