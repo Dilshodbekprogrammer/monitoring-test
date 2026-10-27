@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block title %}Savollar — {{ subject.name }}{% endblock %}
+{% block body %}
+<div class="crumbs"><a href="{{ url_for('t_home') }}">Bosh sahifa</a> / {{ subject.name }}</div>
+<h1>{{ subject.name }} — savollar banki</h1>
+<p class="sub">Jami: {{ rows|length }} ta savol</p>
+
+<div class="row">
+  <div class="card">
+    <h2 style="margin-top:0">Savolni qo'lda kiritish</h2>
+    <p class="muted small">Matn, variantlar va to'g'ri javobni kiriting.</p>
+    <a class="btn" href="{{ url_for('t_question_new', sid=subject.id) }}">+ Yangi savol</a>
+  </div>
+  <div class="card">
+    <h2 style="margin-top:0">Hujjatdan yuklash</h2>
+    <form method="post" action="{{ url_for('t_upload', sid=subject.id) }}" enctype="multipart/form-data">
+      <input type="hidden" name="csrf" value="{{ csrf_token }}">
+      <input type="file" name="file" accept=".xlsx,.docx" required>
+      <p class="actions"><button class="btn">Yuklash</button>
+        <a class="btn sec sm" href="{{ url_for('t_template') }}">Excel shablon</a></p>
+    </form>
+    <details class="small muted"><summary>Qanday format?</summary>
+      <p><b>Excel:</b> ustunlar — Savol | A | B | C | D | To'g'ri javob (A/B/C/D).</p>
+      <p><b>Word (jadval):</b> shu 6 ustunli jadval.</p>
+      <p><b>Word (matn):</b><br>1. Savol matni<br>A) variant<br>B) variant<br>C) variant<br>D) variant<br>Javob: B</p>
+    </details>
+  </div>
+</div>
+
+{% if rows %}
+<div class="tablewrap"><table>
+  <tr><th>#</th><th>Savol</th><th>Variantlar</th><th>Javob</th><th></th></tr>
+  {% for r in rows %}
+  <tr>
+    <td>{{ loop.index }}</td>
+    <td>{{ r.text }}</td>
+    <td class="small">
+      A) {{ r.a }}<br>B) {{ r.b }}{% if r.c %}<br>C) {{ r.c }}{% endif %}{% if r.d %}<br>D) {{ r.d }}{% endif %}
+    </td>
+    <td><span class="badge ok">{{ r.correct }}</span></td>
+    <td class="actions">
+      <a class="btn sec sm" href="{{ url_for('t_question_edit', qid=r.id) }}">Tahrirlash</a>
+      <form class="inline" method="post" action="{{ url_for('t_question_delete', qid=r.id) }}" onsubmit="return confirm('Savol o\'chirilsinmi?')">
+        <input type="hidden" name="csrf" value="{{ csrf_token }}"><button class="btn red sm">×</button>
+      </form>
+    </td>
+  </tr>
+  {% endfor %}
+</table></div>
+<form method="post" action="{{ url_for('t_questions_clear', sid=subject.id) }}" style="margin-top:12px" onsubmit="return confirm('Bu fandagi BARCHA savollar o\'chirilsinmi?')">
+  <input type="hidden" name="csrf" value="{{ csrf_token }}">
+  <button class="btn red sm">Barcha savollarni o'chirish</button>
+</form>
+{% else %}
+<div class="card muted">Bu fanda hali savol yo'q.</div>
+{% endif %}
+{% endblock %}

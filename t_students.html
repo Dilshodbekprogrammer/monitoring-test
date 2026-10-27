@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}O'quvchilar{% endblock %}
+{% block body %}
+<h1>O'quvchilar</h1>
+<p class="sub">Ism-familiyalarni kiriting — tizim har biriga login va parol yaratadi. O'quvchilar faqat test ishlash uchun kira oladi.</p>
+
+<div class="row">
+  <div class="card">
+    <h2 style="margin-top:0">O'quvchilarni qo'shish</h2>
+    <form method="post" action="{{ url_for('t_students_add') }}">
+      <input type="hidden" name="csrf" value="{{ csrf_token }}">
+      <label>Sinf</label>
+      <input type="text" name="class_name" list="classes" value="{{ cls }}" placeholder="Masalan: 7-A" required>
+      <datalist id="classes">{% for c in classes %}<option value="{{ c.class_name }}">{% endfor %}</datalist>
+      <label>Ism-familiyalar (har qatorda bittadan)</label>
+      <textarea name="names" placeholder="Aliyev Vali&#10;Karimova Madina&#10;..." required></textarea>
+      <p><button class="btn">Qo'shish va login-parol yaratish</button></p>
+    </form>
+  </div>
+  <div class="card">
+    <h2 style="margin-top:0">Sinflar</h2>
+    {% for c in classes %}
+      <a class="badge {{ 'ok' if c.class_name == cls }}" href="{{ url_for('t_students', **{'class': c.class_name}) }}" style="font-size:14px;margin:0 6px 6px 0">{{ c.class_name }} · {{ c.n }}</a>
+    {% else %}<p class="muted">Hozircha sinf yo'q.</p>{% endfor %}
+  </div>
+</div>
+
+{% if cls %}
+<h2>{{ cls }} sinfi ({{ students|length }} ta)</h2>
+<p class="actions"><a class="btn grn sm" href="{{ url_for('t_credentials', **{'class': cls}) }}">⬇ Login-parollarni Excelga yuklash</a></p>
+<div class="tablewrap"><table>
+  <tr><th>#</th><th>F.I.Sh.</th><th>Login</th><th>Parol</th><th></th></tr>
+  {% for s in students %}
+  <tr>
+    <td>{{ loop.index }}</td><td>{{ s.full_name }}</td>
+    <td><code>{{ s.username }}</code></td>
+    <td><code>{{ s.pw_plain or '—' }}</code></td>
+    <td class="actions">
+      <form class="inline" method="post" action="{{ url_for('t_student_reset', sid=s.id) }}">
+        <input type="hidden" name="csrf" value="{{ csrf_token }}"><button class="btn sec sm">Yangi parol</button></form>
+      <form class="inline" method="post" action="{{ url_for('t_student_delete', sid=s.id) }}" onsubmit="return confirm('O\'quvchi arxivlansinmi?')">
+        <input type="hidden" name="csrf" value="{{ csrf_token }}"><button class="btn red sm">×</button></form>
+    </td>
+  </tr>
+  {% endfor %}
+</table></div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Testlar{% endblock %}
+{% block body %}
+<div class="actions" style="justify-content:space-between">
+  <div><h1>Testlar va natijalar</h1><p class="sub">Yaratilgan testlar ro'yxati</p></div>
+  <a class="btn" href="{{ url_for('t_test_new') }}">+ Yangi test</a>
+</div>
+{% if rows %}
+<div class="tablewrap"><table>
+  <tr><th>Test</th><th>Fan / sinf</th><th>Savol</th><th>Vaqt</th><th>Muddat</th><th>Holat</th><th>Natija</th><th></th></tr>
+  {% for t in rows %}
+  <tr>
+    <td><b>{{ t.title }}</b></td>
+    <td>{{ t.subject }}<br><span class="small muted">{{ t.classes.strip('|').replace('|', ', ') }}</span></td>
+    <td>{{ t.num_questions }}</td>
+    <td>{{ t.minutes }} daq</td>
+    <td class="small">{{ t.start_at|dt }}<br>{{ t.end_at|dt }}</td>
+    <td>{% if t.active %}<span class="badge ok">faol</span>{% else %}<span class="badge">yopiq</span>{% endif %}</td>
+    <td>{{ t.done }} ta topshirgan{% if t.running %}<br><span class="badge warn">{{ t.running }} ta jarayonda</span>{% endif %}</td>
+    <td class="actions">
+      <a class="btn sm" href="{{ url_for('t_results', tid=t.id) }}">Natijalar</a>
+      <form class="inline" method="post" action="{{ url_for('t_test_toggle', tid=t.id) }}">
+        <input type="hidden" name="csrf" value="{{ csrf_token }}"><button class="btn sec sm">{{ 'Yopish' if t.active else 'Ochish' }}</button></form>
+      <form class="inline" method="post" action="{{ url_for('t_test_delete', tid=t.id) }}" onsubmit="return confirm('Test va barcha natijalari o\'chirilsinmi?')">
+        <input type="hidden" name="csrf" value="{{ csrf_token }}"><button class="btn red sm">×</button></form>
+    </td>
+  </tr>
+  {% endfor %}
+</table></div>
+{% else %}<div class="card muted">Hozircha test yo'q.</div>{% endif %}
+{% endblock %}

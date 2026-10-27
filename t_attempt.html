@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}Batafsil natija{% endblock %}
+{% block body %}
+<div class="crumbs"><a href="{{ url_for('t_tests') }}">Testlar</a> / <a href="{{ url_for('t_results', tid=test.id) }}">{{ test.title }}</a> / {{ att.full_name }}</div>
+<h1>{{ att.full_name }} <span class="muted" style="font-size:16px">{{ att.class_name }}</span></h1>
+<p class="sub">
+  Boshlangan: {{ att.started_at|dt }} · Tugagan: {{ att.finished_at|dt }} ·
+  Natija: <b>{{ att.score }} / {{ att.total }}</b> · Holat: {{ status }}
+</p>
+{% if viol %}
+<div class="card">
+  <b>Ogohlantirishlar ({{ viol|length }}):</b>
+  {% for v in viol %}<div class="small">{{ loop.index }}. {{ v.at|dt }} — boshqa oynaga o'tgan</div>{% endfor %}
+</div>
+{% endif %}
+{% for it in items %}
+<div class="card">
+  <div class="qhead">{{ loop.index }}. {{ it.q.text }}</div>
+  {% for L in it.order %}
+    {% set txt = it.q[L.lower()] %}
+    <div class="opt {{ 'correct' if L == it.q.correct else ('wrong' if L == it.chosen else '') }}">
+      <b>{{ L }})</b> <span>{{ txt }}{% if L == it.chosen %} <span class="badge">o'quvchi javobi</span>{% endif %}{% if L == it.q.correct %} <span class="badge ok">to'g'ri</span>{% endif %}</span>
+    </div>
+  {% endfor %}
+  {% if not it.chosen %}<div class="small muted">Javob berilmagan</div>{% endif %}
+</div>
+{% endfor %}
+{% endblock %}
