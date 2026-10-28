@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}Kirish{% endblock %}
+{% block nav %}{% endblock %}
+{% block body %}
+<div class="login card">
+  <h1>📝 Monitoring test</h1>
+  <p class="sub">Tizimga kirish</p>
+  <form method="post">
+    <input type="hidden" name="csrf" value="{{ csrf_token }}">
+    <label>Login</label>
+    <input type="text" name="username" autocomplete="username" autofocus required>
+    <label>Parol</label>
+    <input type="password" name="password" autocomplete="current-password" required>
+    <p><button class="btn" style="width:100%">Kirish</button></p>
+    <p class="small muted" style="text-align:center">O'qituvchimisiz? <a href="{{ url_for('register') }}">Ro'yxatdan o'ting</a></p>
+  </form>
+</div>
+{% endblock %}

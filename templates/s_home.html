@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Testlar{% endblock %}
+{% block body %}
+<h1>Salom, {{ user.full_name }}!</h1>
+<p class="sub">Sizga ochilgan testlar</p>
+{% for c in cards %}
+<div class="card">
+  <div class="actions" style="justify-content:space-between">
+    <div>
+      <div style="font-size:18px;font-weight:700">{{ c.t.title }}</div>
+      <div class="muted small">{{ c.t.subject }} · {{ c.t.teacher }} · {{ c.t.num_questions }} savol · {{ c.t.minutes }} daqiqa</div>
+      {% if c.t.start_at or c.t.end_at %}<div class="muted small">Muddat: {{ c.t.start_at|dt }} — {{ c.t.end_at|dt }}</div>{% endif %}
+    </div>
+    <div class="actions">
+      {% if c.state == 'running' %}
+        <a class="btn" href="{{ url_for('s_take', aid=c.running.id) }}">Davom etish</a>
+      {% elif c.state == 'open' %}
+        <form method="post" action="{{ url_for('s_start', tid=c.t.id) }}" onsubmit="return confirm('Test boshlanadi va vaqt hisoblanadi. Boshlaymizmi?')">
+          <input type="hidden" name="csrf" value="{{ csrf_token }}">
+          <button class="btn grn">Testni boshlash</button>
+        </form>
+      {% elif c.state == 'soon' %}<span class="badge warn">Hali boshlanmagan</span>
+      {% elif c.state == 'closed' %}<span class="badge err">Yopilgan</span>
+      {% else %}<span class="badge ok">Topshirilgan</span>{% endif %}
+    </div>
+  </div>
+  {% if c.done %}
+    <div class="small" style="margin-top:8px">
+      {% for a in c.done %}
+        <a href="{{ url_for('s_result', aid=a.id) }}">{{ loop.index }}-urinish: {{ a.finished_at|dt }}</a>{{ ' · ' if not loop.last }}
+      {% endfor %}
+    </div>
+  {% endif %}
+</div>
+{% else %}
+<div class="card muted">Hozircha sizga test ochilmagan.</div>
+{% endfor %}
+{% endblock %}

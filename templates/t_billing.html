@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% block title %}Obuna{% endblock %}
+{% block body %}
+<h1>Obuna va to'lov</h1>
+
+<div class="card">
+  {% if sub.unlimited %}
+    <span class="badge ok">Cheksiz obuna</span>
+  {% elif sub.active %}
+    <span class="badge ok">{{ 'Sinov davri' if sub.plan == 'trial' else 'Obuna faol' }}</span>
+    <span style="margin-left:8px">{{ sub.until|dt }} gacha ({{ sub.days_left }} kun qoldi)</span>
+  {% else %}
+    <span class="badge err">Obuna tugagan</span>
+    <p class="muted small" style="margin-bottom:0">Yangi test, savol va o'quvchi qo'shish yopilgan. Eski natijalarni ko'rish va Excelga yuklash ochiq. Obunani yangilasangiz hammasi qayta ochiladi.</p>
+  {% endif %}
+</div>
+
+{% if not sub.unlimited %}
+<h2>{{ 'Obunani uzaytirish' if sub.active else 'Obunani yangilash' }}</h2>
+
+{% if pend %}
+<div class="card" style="border-color:var(--brand)">
+  <h2 style="margin-top:0">To'lovni yakunlang</h2>
+  <p>Quyidagi kartaga <b>aynan shu summani</b> o'tkazing (summa o'zgarsa to'lov aniqlanmaydi):</p>
+  <div class="big" style="letter-spacing:2px">{{ pend.card }}</div>
+  <div style="font-size:24px;font-weight:700;margin:6px 0">{{ pend.amount|money }} so'm</div>
+  <p class="muted small">{{ pend.months }} oylik obuna · Qolgan vaqt: <b id="left" class="timer" style="font-size:16px">--:--</b></p>
+  <p class="muted small">To'lov tushgach, sahifa o'zi yangilanadi (5–30 soniya).</p>
+  <div class="actions">
+    <form method="post" action="{{ url_for('t_billing_check') }}"><input type="hidden" name="csrf" value="{{ csrf_token }}"><button class="btn sec">To'lovni qayta tekshirish</button></form>
+    <form method="post" action="{{ url_for('t_billing_cancel') }}"><input type="hidden" name="csrf" value="{{ csrf_token }}"><button class="btn red sm">Bekor qilish</button></form>
+  </div>
+</div>
+<script>
+(function () {
+  var left = {{ left }}, t0 = performance.now(), el = document.getElementById('left');
+  function tick() {
+    var s = Math.max(0, Math.round(left - (performance.now() - t0) / 1000));
+    el.textContent = Math.floor(s / 60) + ':' + ('0' + (s % 60)).slice(-2);
+    if (s <= 0) location.reload();
+  }
+  setInterval(tick, 1000); tick();
+  setInterval(function () {
+    fetch('{{ url_for("t_billing_status", pid=pend.id) }}', {credentials: 'same-origin'})
+      .then(function (r) { return r.json(); })
+      .then(function (j) { if (j.status !== 'pending') location.reload(); }).catch(function () {});
+  }, 4000);
+})();
+</script>
+{% elif not configured %}
+<div class="card">To'lov tizimi hali sozlanmagan. Administratorga murojaat qiling.</div>
+{% else %}
+<div class="grid">
+  {% for m in months %}
+  <div class="card">
+    <div style="font-size:18px;font-weight:700">{{ m }} oy</div>
+    <div class="big">{{ (price_month * m)|money }} <span class="small muted">so'm</span></div>
+    <form method="post" action="{{ url_for('t_billing_pay') }}" style="margin-top:10px">
+      <input type="hidden" name="csrf" value="{{ csrf_token }}">
+      <input type="hidden" name="months" value="{{ m }}">
+      <button class="btn">To'lash</button>
+    </form>
+  </div>
+  {% endfor %}
+</div>
+<p class="small muted">To'lov HUMO/UZCARD kartasiga o'tkazma orqali qilinadi. Obuna to'lov tasdiqlangach avtomatik uzayadi.</p>
+{% endif %}
+{% endif %}
+
+{% if history %}
+<h2>To'lovlar tarixi</h2>
+<div class="tablewrap"><table>
+  <tr><th>Sana</th><th>Muddat</th><th>Summa</th><th>Holat</th></tr>
+  {% for p in history %}
+  <tr><td>{{ p.created_at|dt }}</td><td>{{ p.months }} oy</td><td>{{ p.amount|money }} so'm</td>
+    <td>{% if p.status == 'paid' %}<span class="badge ok">to'langan</span>{% elif p.status == 'pending' %}<span class="badge warn">kutilmoqda</span>{% else %}<span class="badge">{{ {'expired': 'muddati o\'tgan', 'cancelled': 'bekor qilingan'}.get(p.status, p.status) }}</span>{% endif %}</td></tr>
+  {% endfor %}
+</table></div>
+{% endif %}
+{% endblock %}

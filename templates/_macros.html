@@ -1,0 +1,3 @@
+{% macro img(name, cls='qimg') -%}
+{%- if name %}<img class="{{ cls }}" src="{{ url_for('media', name=name) }}" loading="lazy" alt="" draggable="false">{% endif -%}
+{%- endmacro %}

@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% from "_macros.html" import img %}
+{% block title %}Savol{% endblock %}
+{% block body %}
+<div class="crumbs"><a href="{{ url_for('t_home') }}">Bosh sahifa</a> / <a href="{{ url_for('t_questions', sid=subject.id) }}">{{ subject.name }}</a> / {{ 'Tahrirlash' if edit else 'Yangi savol' }}</div>
+<h1>{{ 'Savolni tahrirlash' if edit else 'Yangi savol' }}</h1>
+<p class="sub">Savol va variantlar matn, rasm (JPG/PNG) yoki ikkalasi bilan bo'lishi mumkin. Rasmni fayl sifatida tanlang yoki nusxalab <b>Ctrl+V</b> (Mac: <b>⌘V</b>) bilan qo'ying.</p>
+
+<div class="card">
+  <form method="post" enctype="multipart/form-data" id="qform">
+    <input type="hidden" name="csrf" value="{{ csrf_token }}">
+
+    <div class="imgfield" data-name="Savol">
+      <label>Savol matni <span class="muted">(rasm bo'lsa, ixtiyoriy)</span></label>
+      <textarea name="text">{{ q.get('text', '') or '' }}</textarea>
+      <div class="imgbox">
+        <div class="small muted">Savol rasmi (JPG/PNG)</div>
+        {% if q.get('img') %}<div class="cur">{{ img(q.get('img')) }}<label class="chk"><input type="checkbox" name="rm_img" value="1"> Rasmni o'chirish</label></div>{% endif %}
+        <input type="file" name="img" accept="image/png,image/jpeg">
+        <img class="prev" hidden alt="">
+      </div>
+    </div>
+
+    <label style="margin-top:20px">Variantlar</label>
+    <div class="row">
+      {% for L in ['a','b','c','d'] %}
+      <div class="imgfield optbox" data-name="Variant {{ L.upper() }}">
+        <div style="font-weight:700;margin-bottom:4px">{{ L.upper() }}{% if L in ['c','d'] %} <span class="muted small">(ixtiyoriy)</span>{% endif %}</div>
+        <input type="text" name="{{ L }}" value="{{ q.get(L, '') or '' }}" placeholder="Matn (rasm bo'lsa, ixtiyoriy)">
+        <div class="imgbox">
+          {% if q.get(L ~ '_img') %}<div class="cur">{{ img(q.get(L ~ '_img'), 'oimg') }}<label class="chk"><input type="checkbox" name="rm_{{ L }}_img" value="1"> Rasmni o'chirish</label></div>{% endif %}
+          <input type="file" name="{{ L }}_img" accept="image/png,image/jpeg">
+          <img class="prev" hidden alt="">
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+
+    <label>To'g'ri javob</label>
+    <select name="correct" required style="max-width:160px">
+      <option value="">— tanlang —</option>
+      {% for L in ['A','B','C','D'] %}<option value="{{ L }}" {{ 'selected' if q.get('correct') == L }}>{{ L }}</option>{% endfor %}
+    </select>
+    <p class="actions">
+      <button class="btn">Saqlash</button>
+      {% if not edit %}<button class="btn sec" name="another" value="1">Saqlash va yana qo'shish</button>{% endif %}
+      <a class="btn sec" href="{{ url_for('t_questions', sid=subject.id) }}">Bekor qilish</a>
+    </p>
+    <div id="pasteInfo" class="small muted"></div>
+  </form>
+</div>
+
+<script>
+(function () {
+  var MAX = 6 * 1024 * 1024;
+  var groups = Array.prototype.slice.call(document.querySelectorAll('.imgfield'));
+  var active = groups[0];
+  var info = document.getElementById('pasteInfo');
+
+  function setPreview(g, file) {
+    var prev = g.querySelector('.prev');
+    if (!file) { prev.hidden = true; prev.removeAttribute('src'); return; }
+    var r = new FileReader();
+    r.onload = function (e) { prev.src = e.target.result; prev.hidden = false; };
+    r.readAsDataURL(file);
+  }
+  groups.forEach(function (g) {
+    var inp = g.querySelector('input[type=file]');
+    ['focusin', 'click'].forEach(function (ev) { g.addEventListener(ev, function () { active = g; g.classList.add('act'); groups.forEach(function (o) { if (o !== g) o.classList.remove('act'); }); }); });
+    inp.addEventListener('change', function () {
+      var f = inp.files[0];
+      if (f && f.size > MAX) { alert('Rasm hajmi 6 MB dan oshmasin.'); inp.value = ''; setPreview(g, null); return; }
+      setPreview(g, f);
+    });
+  });
+  // Ctrl+V — nusxalangan rasmni (skrinshot ham) tanlangan maydonga qo'yish
+  document.addEventListener('paste', function (e) {
+    var items = (e.clipboardData && e.clipboardData.files) || [];
+    var f = null;
+    for (var i = 0; i < items.length; i++) { if (/^image\/(png|jpeg)$/.test(items[i].type)) { f = items[i]; break; } }
+    if (!f) return;
+    if (f.size > MAX) { alert('Rasm hajmi 6 MB dan oshmasin.'); return; }
+    var inp = active.querySelector('input[type=file]');
+    try {
+      var dt = new DataTransfer(); dt.items.add(f); inp.files = dt.files;
+    } catch (err) { info.textContent = 'Brauzeringiz Ctrl+V ni qo\'llab-quvvatlamaydi. Faylni tanlang.'; return; }
+    setPreview(active, f);
+    info.textContent = 'Rasm qo\'yildi: ' + active.dataset.name;
+    e.preventDefault();
+  });
+})();
+</script>
+{% endblock %}

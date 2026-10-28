@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}Natijalar{% endblock %}
+{% block body %}
+<div class="crumbs"><a href="{{ url_for('t_tests') }}">Testlar</a> / Natijalar</div>
+<div class="actions" style="justify-content:space-between">
+  <div>
+    <h1>{{ test.title }}</h1>
+    <p class="sub">{{ test.subject }} · {{ test.classes.strip('|').replace('|', ', ') }} · {{ test.num_questions }} savol · {{ test.minutes }} daqiqa</p>
+  </div>
+  <a class="btn grn" href="{{ url_for('t_results_xlsx', tid=test.id) }}">⬇ Excelga yuklash</a>
+</div>
+
+{% if stats %}
+<div class="grid" style="margin-bottom:16px">
+  <div class="card"><div class="muted small">Topshirganlar</div><div class="big">{{ stats.n }}</div></div>
+  <div class="card"><div class="muted small">O'rtacha natija</div><div class="big">{{ stats.avg }}%</div></div>
+  <div class="card"><div class="muted small">Eng yuqori / past</div><div class="big">{{ stats.mx }}% / {{ stats.mn }}%</div></div>
+  <div class="card"><div class="muted small">Ogohlantirish olganlar</div><div class="big">{{ stats.warn }}</div></div>
+</div>
+{% endif %}
+
+{% if res %}
+<div class="tablewrap"><table>
+  <tr><th>#</th><th>F.I.Sh.</th><th>Sinf</th><th>To'g'ri</th><th>Foiz</th><th>Baho</th><th>Ogohl.</th><th>Vaqt</th><th>Holat</th><th></th></tr>
+  {% for r in res %}
+  <tr>
+    <td>{{ loop.index }}</td>
+    <td>{{ r.a.full_name }}</td><td>{{ r.a.class_name }}</td>
+    <td>{% if r.pct is not none %}{{ r.a.score }} / {{ r.a.total }}{% else %}—{% endif %}</td>
+    <td>{{ (r.pct ~ '%') if r.pct is not none else '—' }}</td>
+    <td>{% if r.grade %}<b>{{ r.grade }}</b>{% else %}—{% endif %}</td>
+    <td>{% if r.a.warnings %}<span class="badge warn">{{ r.a.warnings }}</span>{% else %}0{% endif %}</td>
+    <td>{{ (r.dur ~ ' daq') if r.dur is not none else '—' }}</td>
+    <td class="small">{{ r.status }}</td>
+    <td><a href="{{ url_for('t_attempt', aid=r.a.id) }}">Batafsil</a></td>
+  </tr>
+  {% endfor %}
+</table></div>
+{% else %}<div class="card muted">Hozircha hech kim ishlamagan.</div>{% endif %}
+
+{% if missing %}
+<h2>Hali ishlamaganlar ({{ missing|length }})</h2>
+<div class="card small">{% for s in missing %}{{ s.full_name }} <span class="muted">({{ s.class_name }})</span>{{ ', ' if not loop.last }}{% endfor %}</div>
+{% endif %}
+<p class="small muted">Baho: 86%+ → 5, 71–85% → 4, 55–70% → 3, 55% dan past → 2.</p>
+{% endblock %}

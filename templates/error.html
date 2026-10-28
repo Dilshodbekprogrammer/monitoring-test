@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block title %}Xato{% endblock %}
+{% block body %}
+<div class="card">
+  <h1>{{ e.code }}</h1>
+  <p>{% if e.code == 404 %}Sahifa topilmadi.{% elif e.code == 403 %}Bu sahifaga kirish huquqingiz yo'q.{% elif e.code == 413 %}Yuklanayotgan fayllar hajmi juda katta. Rasmlarni kichikroq qilib yuklang (har biri 6 MB gacha).{% elif e.code == 500 %}Serverda xatolik yuz berdi. Qayta urinib ko'ring.{% else %}{{ e.description }}{% endif %}</p>
+  <a class="btn" href="{{ url_for('home') }}">Bosh sahifaga</a>
+</div>
+{% endblock %}

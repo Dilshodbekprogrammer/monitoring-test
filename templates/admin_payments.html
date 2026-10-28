@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}To'lovlar{% endblock %}
+{% block body %}
+<div class="crumbs"><a href="{{ url_for('admin_home') }}">Boshqaruv</a> / To'lovlar</div>
+<h1>To'lovlar</h1>
+<p class="sub">Jami tushum: <b>{{ total|money }} so'm</b></p>
+<div class="tablewrap"><table>
+  <tr><th>Sana</th><th>O'qituvchi</th><th>Muddat</th><th>Summa</th><th>Holat</th><th>To'langan</th><th>Buyurtma</th></tr>
+  {% for p in pays %}
+  <tr><td>{{ p.created_at|dt }}</td><td>{{ p.full_name }}<br><span class="small muted">{{ p.username }}</span></td>
+    <td>{{ p.months }} oy</td><td>{{ p.amount|money }}</td>
+    <td><span class="badge {{ 'ok' if p.status == 'paid' else ('warn' if p.status == 'pending' else '') }}">{{ p.status }}</span></td>
+    <td class="small">{{ p.paid_at|dt }}</td><td class="small"><code>{{ p.order_id }}</code></td></tr>
+  {% else %}<tr><td colspan="7" class="muted">To'lov yo'q.</td></tr>{% endfor %}
+</table></div>
+<h2>Callback jurnali (oxirgi 30 ta)</h2>
+<div class="tablewrap"><table>
+  <tr><th>Vaqt</th><th>Yo'l</th><th>IP</th><th>Natija</th></tr>
+  {% for l in logs %}<tr><td class="small">{{ l.at|dt }}</td><td class="small">{{ l.path }}</td><td class="small">{{ l.ip }}</td><td class="small">{{ l.result }}</td></tr>
+  {% else %}<tr><td colspan="4" class="muted">Hali callback kelmagan.</td></tr>{% endfor %}
+</table></div>
+{% endblock %}

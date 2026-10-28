@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}Natija{% endblock %}
+{% block body %}
+<div class="card result">
+  <h1>{{ test.title }}</h1>
+  <p class="sub">{{ test.subject }}</p>
+  {% if att.status == 'warnings' %}<div class="flash err">Test boshqa oynaga o'tish ogohlantirishlari tufayli yakunlandi.</div>{% endif %}
+  {% if att.status == 'time' %}<div class="flash err">Vaqt tugadi, test avtomatik yakunlandi.</div>{% endif %}
+  {% if test.show_result %}
+    <div class="score">{{ att.score }} / {{ att.total }}</div>
+    <p style="font-size:20px">{{ pct }}% · Baho: <b>{{ grade }}</b></p>
+  {% else %}
+    <p style="font-size:20px">Test yakunlandi. Natijani o'qituvchingiz e'lon qiladi.</p>
+  {% endif %}
+  <a class="btn" href="{{ url_for('s_home') }}">Testlar ro'yxatiga qaytish</a>
+</div>
+{% endblock %}

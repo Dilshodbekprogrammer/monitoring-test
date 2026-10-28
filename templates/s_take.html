@@ -1,0 +1,169 @@
+{% extends "base.html" %}
+{% from "_macros.html" import img %}
+{% block title %}{{ test.title }}{% endblock %}
+{% block nav %}
+<div class="testbar"><div class="in">
+  <b>{{ test.title }}</b>
+  <span class="muted small">{{ test.subject }}</span>
+  <span style="flex:1"></span>
+  <span class="small">Ogohlantirish: <b id="wcount">{{ att.warnings }}</b>/{{ test.max_warnings }}</span>
+  <span class="timer" id="timer">--:--</span>
+</div></div>
+{% endblock %}
+{% block body %}
+<div class="nosel" id="exam" style="max-width:860px;margin:auto">
+  <div class="card">
+    <div class="small muted" style="margin-bottom:6px">Savollar (<span id="answered">0</span>/{{ items|length }} javob berildi)</div>
+    <div class="pal">
+      {% for it in items %}<a href="#q{{ it.id }}" id="p{{ it.id }}" class="{{ 'done' if it.chosen }}">{{ loop.index }}</a>{% endfor %}
+    </div>
+    <p class="small muted" style="margin:10px 0 0">⚠ Test davomida boshqa oyna yoki dasturga o'tmang. {{ test.max_warnings }} marta o'tsangiz{% if test.auto_finish %} test avtomatik yakunlanadi{% endif %}.</p>
+  </div>
+
+  {% for it in items %}
+  <div class="card qbox" id="q{{ it.id }}">
+    <div class="qhead">{{ loop.index }}. {{ it.text }}</div>
+    {{ img(it.img) }}
+    {% for L, txt, oimg in it.opts %}
+    <label class="opt {{ 'sel' if it.chosen == L }}">
+      <input type="radio" name="q{{ it.id }}" value="{{ L }}" data-qid="{{ it.id }}" {{ 'checked' if it.chosen == L }}>
+      <span>{{ txt or '' }}{{ img(oimg, 'oimg') }}</span>
+    </label>
+    {% endfor %}
+  </div>
+  {% endfor %}
+
+  <p style="text-align:center;margin:24px 0 60px">
+    <button class="btn grn" id="finish" style="padding:12px 30px;font-size:16px">Testni yakunlash</button>
+  </p>
+</div>
+
+<div class="modal" id="warnModal"><div class="box">
+  <h2>⚠ Ogohlantirish!</h2>
+  <p id="warnText"></p>
+  <button class="btn" id="warnOk">Tushundim, davom etaman</button>
+</div></div>
+<div class="modal" id="saveModal"><div class="box">
+  <p id="saveText">Natijalar saqlanmoqda...</p>
+</div></div>
+
+<script>
+(function () {
+  var AID = {{ att.id }};
+  var CSRF = document.querySelector('meta[name=csrf]').content;
+  var MAXW = {{ test.max_warnings }};
+  var remaining = {{ remaining }};
+  var t0 = performance.now(), base = remaining;
+  var finished = false, modalOpen = false, lastViol = 0;
+  var timerEl = document.getElementById('timer');
+
+  function post(path, body) {
+    return fetch('/api/attempt/' + AID + '/' + path, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json', 'X-CSRF': CSRF},
+      body: JSON.stringify(body || {}),
+      credentials: 'same-origin'
+    }).then(function (r) { return r.json(); });
+  }
+  function goResult() {
+    finished = true;
+    window.onbeforeunload = null;
+    location.href = '/student/attempt/' + AID + '/result';
+  }
+
+  // ---- taymer (server vaqtiga asoslangan) ----
+  function tick() {
+    var left = Math.max(0, Math.round(base - (performance.now() - t0) / 1000));
+    var m = Math.floor(left / 60), s = left % 60;
+    timerEl.textContent = (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s;
+    timerEl.className = 'timer' + (left <= 60 ? ' low' : '');
+    if (left <= 0 && !finished) { finishNow('Vaqt tugadi. Natijalar saqlanmoqda...'); }
+  }
+  setInterval(tick, 500); tick();
+
+  // ---- javoblarni avtomatik saqlash ----
+  function updateCount() {
+    var n = 0;
+    document.querySelectorAll('.qbox').forEach(function (b) {
+      if (b.querySelector('input:checked')) n++;
+    });
+    document.getElementById('answered').textContent = n;
+  }
+  updateCount();
+  document.querySelectorAll('input[type=radio]').forEach(function (r) {
+    r.addEventListener('change', function () {
+      var qid = r.dataset.qid;
+      r.closest('.qbox').querySelectorAll('.opt').forEach(function (o) { o.classList.remove('sel'); });
+      r.closest('.opt').classList.add('sel');
+      document.getElementById('p' + qid).classList.add('done');
+      updateCount();
+      post('answer', {qid: parseInt(qid, 10), choice: r.value}).then(function (j) {
+        if (j.finished) goResult();
+      }).catch(function () {});
+    });
+  });
+
+  // ---- yakunlash ----
+  function finishNow(msg) {
+    if (finished) return;
+    finished = true;
+    document.getElementById('saveText').textContent = msg || 'Natijalar saqlanmoqda...';
+    document.getElementById('saveModal').classList.add('on');
+    post('finish').then(function (j) {
+      window.onbeforeunload = null;
+      location.href = j.url || ('/student/attempt/' + AID + '/result');
+    }).catch(function () { location.reload(); });
+  }
+  document.getElementById('finish').addEventListener('click', function () {
+    var n = parseInt(document.getElementById('answered').textContent, 10);
+    var total = {{ items|length }};
+    var msg = n < total ? ('Siz ' + (total - n) + ' ta savolga javob bermadingiz. Baribir yakunlaysizmi?') : 'Testni yakunlaysizmi?';
+    lastViol = Date.now() + 3000;          // confirm() oynasi blur chaqirsa, ogohlantirish sanalmasin
+    var ok = confirm(msg);
+    lastViol = Date.now() + 1000;
+    if (ok) finishNow();
+  });
+
+  // ---- boshqa oynaga o'tishni nazorat qilish ----
+  function violation(kind) {
+    if (finished || modalOpen) return;
+    var t = Date.now();
+    if (t - lastViol < 1500) return;       // visibilitychange + blur ikki marta sanalmasin
+    lastViol = t;
+    post('violation', {kind: kind}).then(function (j) {
+      if (j.finished && !j.warnings) { goResult(); return; }
+      document.getElementById('wcount').textContent = j.warnings;
+      var left = j.max - j.warnings;
+      var txt;
+      if (j.finished) {
+        txt = 'Siz ' + j.max + ' marta boshqa oynaga o\'tdingiz. Test yakunlandi.';
+        document.getElementById('warnOk').textContent = 'Natijani ko\'rish';
+        modalOpen = true;
+        document.getElementById('warnText').textContent = txt;
+        document.getElementById('warnModal').classList.add('on');
+        document.getElementById('warnOk').onclick = goResult;
+        return;
+      }
+      txt = 'Test vaqtida boshqa oyna yoki dasturga o\'tish taqiqlangan! Ogohlantirish: ' + j.warnings + '/' + j.max + '.' +
+            (left > 0 ? ' Yana ' + left + ' marta takrorlansa test yakunlanadi.' : '');
+      document.getElementById('warnText').textContent = txt;
+      modalOpen = true;
+      document.getElementById('warnModal').classList.add('on');
+    }).catch(function () {});
+  }
+  document.getElementById('warnOk').onclick = function () {
+    modalOpen = false;
+    lastViol = Date.now();
+    document.getElementById('warnModal').classList.remove('on');
+  };
+  document.addEventListener('visibilitychange', function () { if (document.hidden) violation('hidden'); });
+  window.addEventListener('blur', function () { violation('blur'); });
+
+  // ---- qo'shimcha cheklovlar ----
+  ['contextmenu', 'copy', 'cut', 'paste', 'dragstart'].forEach(function (ev) {
+    document.addEventListener(ev, function (e) { e.preventDefault(); });
+  });
+  window.onbeforeunload = function () { if (!finished) return 'Test hali yakunlanmadi!'; };
+})();
+</script>
+{% endblock %}
